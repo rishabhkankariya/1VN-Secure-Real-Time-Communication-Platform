@@ -1,2 +1,5 @@
 .env
 target/
+dist/
+release/
+*.exe
