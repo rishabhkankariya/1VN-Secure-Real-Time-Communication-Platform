@@ -29,6 +29,9 @@ public class ConversationPane {
 
     private Consumer<String> onConversationSelected;
     private Consumer<String> onNewConversationRequested;
+    private Consumer<String> onSearchRequested;
+    private Runnable onRefreshDirectoryRequested;
+
     private final Button newChatButton = new Button("New Chat");
     private final VBox newChatPanel = new VBox(8);
     private final TextField newUsernameField = new TextField();
@@ -38,14 +41,32 @@ public class ConversationPane {
     private final Button cancelButton = new Button("Cancel");
 
     public ConversationPane() {
-        // --- Sidebar Header ---
+        // --- Sidebar Header with Refresh ---
         Label headerTitle = new Label("CONVERSATIONS");
         headerTitle.getStyleClass().add("sidebar-section-title");
 
+        Button refreshBtn = new Button();
+        refreshBtn.getStyleClass().add("btn-icon-subtle");
+        refreshBtn.setGraphic(VectorIcons.icon(VectorIcons.SIGNAL, 12, "#94a3b8"));
+        refreshBtn.setOnAction(e -> {
+            if (onRefreshDirectoryRequested != null) {
+                onRefreshDirectoryRequested.run();
+            }
+        });
+
+        HBox headerRow = new HBox(headerTitle, refreshBtn);
+        headerRow.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(headerTitle, Priority.ALWAYS);
+
         // --- Search bar ---
-        searchField.setPromptText("Search chats...");
+        searchField.setPromptText("Search server users...");
         searchField.getStyleClass().add("pill-input");
-        searchField.textProperty().addListener((obs, oldVal, newVal) -> filterUsers(newVal));
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> {
+            filterUsers(newVal);
+            if (onSearchRequested != null) {
+                onSearchRequested.accept(newVal);
+            }
+        });
         HBox searchBox = new HBox(8, VectorIcons.icon(VectorIcons.SEARCH, 14, "#64748b"), searchField);
         searchBox.setAlignment(Pos.CENTER_LEFT);
         searchBox.getStyleClass().add("sidebar-search-box");
@@ -53,7 +74,7 @@ public class ConversationPane {
 
         // --- List View Styling ---
         listView.getStyleClass().add("conversation-list-view");
-        Label placeholder = new Label("No conversations yet\nClick + New Chat below");
+        Label placeholder = new Label("No contacts yet\nSearch or click + New Chat below");
         placeholder.setStyle("-fx-text-fill: #64748b; -fx-alignment: center; -fx-text-alignment: center; -fx-font-size: 11px;");
         listView.setPlaceholder(placeholder);
 
@@ -137,7 +158,7 @@ public class ConversationPane {
         VBox footer = new VBox(8, newChatPanel, newChatButton);
         footer.setPadding(new Insets(10, 14, 14, 14));
 
-        root = new VBox(headerTitle, searchBox, listView, footer);
+        root = new VBox(headerRow, searchBox, listView, footer);
         root.setPrefWidth(240);
         root.setMinWidth(200);
         root.getStyleClass().add("conversation-pane");
@@ -189,6 +210,14 @@ public class ConversationPane {
 
     public void setOnConversationSelected(Consumer<String> handler) {
         this.onConversationSelected = handler;
+    }
+
+    public void setOnSearchRequested(Consumer<String> handler) {
+        this.onSearchRequested = handler;
+    }
+
+    public void setOnRefreshDirectoryRequested(Runnable handler) {
+        this.onRefreshDirectoryRequested = handler;
     }
 
     public void setOnline(String username, boolean online) {

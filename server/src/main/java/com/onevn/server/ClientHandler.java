@@ -206,6 +206,13 @@ public class ClientHandler implements Runnable {
 
                     handleHistory(message);
 
+                } else if (message.equals("SEARCH")
+                        || message.startsWith("SEARCH ")
+                        || message.equals("USERS")) {
+
+
+                    handleSearch(message.startsWith("SEARCH ") ? message.substring("SEARCH ".length()).trim() : "");
+
                 } else if (message.equals("BROADCAST")
                         || message.startsWith("BROADCAST ")) {
 
@@ -441,4 +448,22 @@ public class ClientHandler implements Runnable {
 
         output.println(message);
     }
+
+    private void handleSearch(String query) {
+        List<String> matches = server.searchUsers(query);
+        StringBuilder sb = new StringBuilder("USERS_RESULT ");
+        boolean first = true;
+        for (String u : matches) {
+            if (u.equalsIgnoreCase(username)) {
+                continue;
+            }
+            if (!first) {
+                sb.append(",");
+            }
+            sb.append(u).append(":").append(server.isUserOnline(u) ? "ONLINE" : "OFFLINE");
+            first = false;
+        }
+        output.println(sb.toString());
+    }
 }
+

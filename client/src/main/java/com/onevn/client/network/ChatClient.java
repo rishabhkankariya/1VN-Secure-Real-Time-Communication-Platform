@@ -62,6 +62,13 @@ public class ChatClient {
         }
     }
 
+    public void searchUsers(String query) {
+        if (output != null) {
+            output.println("SEARCH " + (query == null ? "" : query.trim()));
+        }
+    }
+
+
     private void startListening(MessageListener listener) {
 
         Thread listenerThread = new Thread(() -> {

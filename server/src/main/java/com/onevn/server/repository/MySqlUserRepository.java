@@ -133,4 +133,23 @@ public class MySqlUserRepository implements UserRepository {
             e.printStackTrace();
         }
     }
+
+    @Override
+    public java.util.List<String> searchUsernames(String query) {
+        String sql = "SELECT username FROM users WHERE username LIKE ? ORDER BY username ASC LIMIT 100";
+        java.util.List<String> results = new java.util.ArrayList<>();
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, "%" + (query == null ? "" : query.trim()) + "%");
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    results.add(rs.getString("username"));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return results;
+    }
 }
+

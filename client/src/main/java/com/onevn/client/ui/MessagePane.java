@@ -12,6 +12,8 @@ public class MessagePane {
 
     private final VBox messageBox = new VBox(12);
     private final ScrollPane scrollPane;
+    private final Label emptyTitle = new Label("Welcome to 1VN Messenger");
+    private final Label emptyDesc = new Label();
     private final VBox emptyCard;
     private final StackPane root;
 
@@ -26,10 +28,8 @@ public class MessagePane {
         scrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
 
         // --- Modern Empty State Card with Vector Icon ---
-        Label emptyTitle = new Label("Welcome to 1VN Messenger");
         emptyTitle.setStyle("-fx-text-fill: #f8fafc; -fx-font-size: 16px; -fx-font-weight: 700;");
-
-        Label emptyDesc = new Label("Select a conversation from the sidebar or click 'New Chat' to begin.\nAll communications are protected with AES-256 encryption at rest.");
+        emptyDesc.setText("Select a conversation from the sidebar or click 'New Chat' to begin.\nAll communications are protected with AES-256 encryption at rest.");
         emptyDesc.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 12px; -fx-text-alignment: center;");
 
         emptyCard = new VBox(12,
@@ -62,6 +62,15 @@ public class MessagePane {
     }
 
     public void showEmptyState() {
+        emptyTitle.setText("Welcome to 1VN Messenger");
+        emptyDesc.setText("Select a conversation from the sidebar or click 'New Chat' to begin.\nAll communications are protected with AES-256 encryption at rest.");
+        emptyCard.setVisible(true);
+    }
+
+    public void showUserNotFound(String username) {
+        clear();
+        emptyTitle.setText("User @" + (username == null ? "" : username) + " Not Found");
+        emptyDesc.setText("No account found with username '@" + (username == null ? "" : username) + "' on this server.\nOnce they register an account, your encrypted messages will appear here.");
         emptyCard.setVisible(true);
     }
 

@@ -48,4 +48,15 @@ public class InMemoryUserRepository implements UserRepository {
 
         users.remove(username);
     }
+
+    @Override
+    public java.util.List<String> searchUsernames(String query) {
+        String q = query == null ? "" : query.trim().toLowerCase();
+        return users.values().stream()
+                .map(User::getUsername)
+                .filter(name -> name.toLowerCase().contains(q))
+                .sorted()
+                .toList();
+    }
 }
+

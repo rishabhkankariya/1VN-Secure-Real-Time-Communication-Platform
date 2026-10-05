@@ -76,6 +76,13 @@ public class ChatView {
 
         conversationPane.setOnConversationSelected(this::onConversationSelected);
         conversationPane.setOnNewConversationRequested(this::onNewConversationRequested);
+        conversationPane.setOnSearchRequested(this::searchUsers);
+        conversationPane.setOnRefreshDirectoryRequested(() -> {
+            if (authenticated) {
+                statusBar.setStatus("Refreshing server user directory...");
+                chatService.searchUsers("");
+            }
+        });
 
         // --- Chat Header Bar ---
         peerAvatarCircle.getStyleClass().add("avatar-circle");
@@ -199,16 +206,25 @@ public class ChatView {
             return true;
         }
 
+        String host = authPane.getServerHost();
+        int port = authPane.getServerPort();
+
         try {
-            chatService.connect(this::onServerMessage);
+            chatService.connect(host, port, this::onServerMessage);
             connected = true;
-            statusBar.setStatus("Connected to 1VN Server (127.0.0.1:5000)");
+            statusBar.setStatus("Connected to 1VN Server (" + host + ":" + port + ")");
             authPane.clearError();
             return true;
         } catch (IOException e) {
-            statusBar.setStatus("Could not connect to server on port 5000.");
-            authPane.showError("Could not connect to server on port 5000.");
+            statusBar.setStatus("Could not connect to " + host + ":" + port);
+            authPane.showError("Could not connect to " + host + ":" + port + ". Make sure server is reachable.");
             return false;
+        }
+    }
+
+    private void searchUsers(String query) {
+        if (authenticated) {
+            chatService.searchUsers(query);
         }
     }
 
@@ -233,6 +249,24 @@ public class ChatView {
 
             messagePane.setCurrentUser(authPane.getUsername());
             messagePane.addSystemMessage("Welcome, @" + authPane.getUsername() + "! End-to-end encrypted session active.");
+
+            // Request user directory from server
+            chatService.searchUsers("");
+
+        } else if (message.startsWith("USERS_RESULT")) {
+            String payload = message.length() > "USERS_RESULT".length()
+                    ? message.substring("USERS_RESULT".length()).trim()
+                    : "";
+            if (!payload.isEmpty()) {
+                String[] pairs = payload.split(",");
+                for (String pair : pairs) {
+                    String[] item = pair.split(":");
+                    if (item.length == 2 && !item[0].isBlank()) {
+                        addKnownUser(item[0]);
+                        conversationPane.setOnline(item[0], item[1].equalsIgnoreCase("ONLINE"));
+                    }
+                }
+            }
 
         } else if (message.equals("HISTORY BEGIN")) {
             loadingHistory = true;
@@ -260,17 +294,19 @@ public class ChatView {
             String[] parts = message.split(" ");
             if (parts.length == 3) {
                 addKnownUser(parts[1]);
-                boolean isOnline = parts[2].equals("ONLINE");
+                boolean isOnline = parts[2].equalsIgnoreCase("ONLINE");
                 conversationPane.setOnline(parts[1], isOnline);
                 if (parts[1].equals(selectedUser)) {
                     peerStatusLabel.setText(isOnline ? "Active now" : "Offline");
                 }
-                messagePane.addSystemMessage(
-                        "Presence update: @" + parts[1] + " is " + parts[2]
-                );
             } else {
                 messagePane.addSystemMessage(message);
             }
+
+        } else if (message.contains("User not found")) {
+            statusBar.setStatus("User '" + (selectedUser != null ? selectedUser : "") + "' not registered on server.");
+            peerStatusLabel.setText("User not registered on server");
+            messagePane.showUserNotFound(selectedUser);
 
         } else if (message.startsWith("REGISTER ERROR")
                 || message.startsWith("LOGIN ERROR")

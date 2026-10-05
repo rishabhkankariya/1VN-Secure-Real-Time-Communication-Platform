@@ -138,4 +138,9 @@ public class ChatServer {
 
         userService.removeUser(username);
     }
+
+    public java.util.List<String> searchUsers(String query) {
+        return userService.searchUsers(query);
+    }
 }
+
