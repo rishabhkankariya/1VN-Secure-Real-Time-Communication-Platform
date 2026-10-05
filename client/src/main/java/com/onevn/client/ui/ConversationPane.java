@@ -1,5 +1,6 @@
 package com.onevn.client.ui;
 
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -12,6 +13,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Circle;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,70 +25,76 @@ public class ConversationPane {
     private final VBox root;
 
     private final Map<String, Boolean> onlineByName = new HashMap<>();
+    private final List<String> allUsers = new ArrayList<>();
 
     private Consumer<String> onConversationSelected;
     private Consumer<String> onNewConversationRequested;
-    private final Button newChatButton = new Button("+ New Chat");
+    private final Button newChatButton = new Button("New Chat");
     private final VBox newChatPanel = new VBox(8);
     private final TextField newUsernameField = new TextField();
+    private final TextField searchField = new TextField();
     private final Label newChatError = new Label();
     private final Button startButton = new Button("Start");
     private final Button cancelButton = new Button("Cancel");
 
     public ConversationPane() {
+        // --- Sidebar Header ---
+        Label headerTitle = new Label("CONVERSATIONS");
+        headerTitle.getStyleClass().add("sidebar-section-title");
 
-        Label header = new Label("Conversations");
-        header.getStyleClass().add("conversation-header");
+        // --- Search bar ---
+        searchField.setPromptText("Search chats...");
+        searchField.getStyleClass().add("pill-input");
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> filterUsers(newVal));
+        HBox searchBox = new HBox(8, VectorIcons.icon(VectorIcons.SEARCH, 14, "#64748b"), searchField);
+        searchBox.setAlignment(Pos.CENTER_LEFT);
+        searchBox.getStyleClass().add("sidebar-search-box");
+        HBox.setHgrow(searchField, Priority.ALWAYS);
 
-        Label placeholder = new Label("No conversations");
-        placeholder.getStyleClass().add("message-empty");
+        // --- List View Styling ---
+        listView.getStyleClass().add("conversation-list-view");
+        Label placeholder = new Label("No conversations yet\nClick + New Chat below");
+        placeholder.setStyle("-fx-text-fill: #64748b; -fx-alignment: center; -fx-text-alignment: center; -fx-font-size: 11px;");
         listView.setPlaceholder(placeholder);
 
         listView.setCellFactory(list -> new ListCell<>() {
-
             @Override
             protected void updateItem(String item, boolean empty) {
-
                 super.updateItem(item, empty);
-                getStyleClass().remove("online");
-                getStyleClass().remove("offline");
 
                 if (empty || item == null) {
                     setText(null);
                     setGraphic(null);
                 } else {
-                    boolean online =
-                            onlineByName.getOrDefault(item, false);
+                    boolean online = onlineByName.getOrDefault(item, false);
 
-                    String initial = item.length() > 0
-                            ? item.substring(0, 1).toUpperCase()
-                            : "?";
+                    String initial = !item.isEmpty() ? item.substring(0, 1).toUpperCase() : "?";
                     Label avatarLabel = new Label(initial);
                     avatarLabel.getStyleClass().add("avatar-label");
 
-                    Circle avatarCircle = new Circle(14);
+                    Circle avatarCircle = new Circle(16);
                     avatarCircle.getStyleClass().add("avatar-circle");
 
                     StackPane avatar = new StackPane(avatarCircle, avatarLabel);
-                    avatar.getStyleClass().add("avatar");
 
-                    Circle onlineDot = new Circle(3.5);
-                    onlineDot.getStyleClass().add("online-dot");
-                    onlineDot.setVisible(online);
+                    Circle statusDot = new Circle(4);
+                    statusDot.getStyleClass().add(online ? "online-dot" : "offline-dot");
 
-                    StackPane avatarWrap = new StackPane(avatar, onlineDot);
-                    StackPane.setAlignment(onlineDot, Pos.BOTTOM_RIGHT);
+                    StackPane avatarWrap = new StackPane(avatar, statusDot);
+                    StackPane.setAlignment(statusDot, Pos.BOTTOM_RIGHT);
 
-                    Label name = new Label(item);
-                    HBox row = new HBox(10, avatarWrap, name);
+                    Label nameLabel = new Label(item);
+                    nameLabel.getStyleClass().add("conversation-name");
+
+                    Label statusLabel = new Label(online ? "Active now" : "Offline");
+                    statusLabel.getStyleClass().add("conversation-status-hint");
+
+                    VBox infoBox = new VBox(2, nameLabel, statusLabel);
+
+                    HBox row = new HBox(12, avatarWrap, infoBox);
                     row.setAlignment(Pos.CENTER_LEFT);
                     setGraphic(row);
                     setText(null);
-                    if (online) {
-                        getStyleClass().add("online");
-                    } else {
-                        getStyleClass().add("offline");
-                    }
                 }
             }
         });
@@ -99,28 +107,56 @@ public class ConversationPane {
                     }
                 });
 
-        newUsernameField.setPromptText("Username");
-        newChatError.setStyle("-fx-text-fill: #ef4444; -fx-font-weight: 600;");
+        // --- New Chat Panel ---
+        newUsernameField.setPromptText("Enter recipient username");
+        newUsernameField.setOnAction(e -> startNewConversation());
+
+        newChatError.setStyle("-fx-text-fill: #f87171; -fx-font-weight: 600; -fx-font-size: 11px;");
         newChatError.setVisible(false);
         newChatError.setManaged(false);
+
+        startButton.getStyleClass().add("btn-primary");
+        startButton.setGraphic(VectorIcons.icon(VectorIcons.CHECK, 12, "#ffffff"));
         startButton.setOnAction(e -> startNewConversation());
+
+        cancelButton.getStyleClass().add("btn-secondary");
         cancelButton.setOnAction(e -> hideNewChat());
-        HBox actions = new HBox(6, startButton, cancelButton);
+
+        HBox actions = new HBox(8, startButton, cancelButton);
         newChatPanel.getChildren().addAll(newUsernameField, actions, newChatError);
         newChatPanel.setVisible(false);
         newChatPanel.setManaged(false);
-        newChatPanel.setPadding(new javafx.geometry.Insets(8, 10, 8, 10));
-        newChatPanel.getStyleClass().add("new-chat-panel");
+        newChatPanel.setPadding(new Insets(10));
+        newChatPanel.setStyle("-fx-background-color: #0f172a; -fx-background-radius: 8; -fx-border-color: #334155; -fx-border-radius: 8;");
 
+        newChatButton.getStyleClass().add("btn-primary");
+        newChatButton.setGraphic(VectorIcons.icon(VectorIcons.PLUS, 14, "#ffffff"));
         newChatButton.setOnAction(e -> showNewChat());
         newChatButton.setMaxWidth(Double.MAX_VALUE);
-        VBox footer = new VBox(6, newChatPanel, newChatButton);
-        footer.setPadding(new javafx.geometry.Insets(6, 10, 6, 10));
 
-        root = new VBox(header, listView, footer);
-        root.setPrefWidth(200);
+        VBox footer = new VBox(8, newChatPanel, newChatButton);
+        footer.setPadding(new Insets(10, 14, 14, 14));
+
+        root = new VBox(headerTitle, searchBox, listView, footer);
+        root.setPrefWidth(240);
+        root.setMinWidth(200);
         root.getStyleClass().add("conversation-pane");
         VBox.setVgrow(listView, Priority.ALWAYS);
+    }
+
+    private void filterUsers(String query) {
+        if (query == null || query.isBlank()) {
+            listView.getItems().setAll(allUsers);
+        } else {
+            String lower = query.trim().toLowerCase();
+            List<String> filtered = new ArrayList<>();
+            for (String u : allUsers) {
+                if (u.toLowerCase().contains(lower)) {
+                    filtered.add(u);
+                }
+            }
+            listView.getItems().setAll(filtered);
+        }
     }
 
     public VBox getRoot() {
@@ -128,25 +164,24 @@ public class ConversationPane {
     }
 
     public void setUsers(List<String> usernames) {
-
-        listView.getItems().setAll(usernames);
-        listView.refresh();
+        allUsers.clear();
+        if (usernames != null) {
+            allUsers.addAll(usernames);
+        }
+        filterUsers(searchField.getText());
     }
 
     public void setSelectedUser(String username) {
-
         if (username == null) {
             listView.getSelectionModel().clearSelection();
             return;
         }
 
-        if (username.equals(
-                listView.getSelectionModel().getSelectedItem())) {
+        if (username.equals(listView.getSelectionModel().getSelectedItem())) {
             return;
         }
 
         int index = listView.getItems().indexOf(username);
-
         if (index >= 0) {
             listView.getSelectionModel().select(index);
         }
@@ -157,7 +192,6 @@ public class ConversationPane {
     }
 
     public void setOnline(String username, boolean online) {
-
         onlineByName.put(username, online);
         listView.refresh();
     }
@@ -196,7 +230,7 @@ public class ConversationPane {
     private void startNewConversation() {
         String username = newUsernameField.getText().trim();
         if (username.isBlank()) {
-            showNewChatError("Enter username.");
+            showNewChatError("Enter a username.");
             return;
         }
         if (username.contains(" ")) {
@@ -209,7 +243,7 @@ public class ConversationPane {
     }
 
     public void clear() {
-
+        allUsers.clear();
         listView.getItems().clear();
         onlineByName.clear();
         listView.getSelectionModel().clearSelection();

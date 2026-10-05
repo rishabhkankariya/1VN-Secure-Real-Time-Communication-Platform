@@ -1,14 +1,404 @@
-/* Avatars */
-.avatar-circle {
-    -fx-fill: #1e293b;
-    -fx-stroke: #6366f1;
-    -fx-stroke-width: 1.2;
-}
-.avatar-label {
+/* 1VN Modern Desktop Experience - Ultra Sleek Dark Theme */
+
+.root {
+    -fx-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -fx-font-size: 13px;
+    -fx-background-color: #0f172a;
     -fx-text-fill: #f8fafc;
+}
+
+/* ========================================================
+   Sidebar & Conversation Navigation
+   ======================================================== */
+.conversation-pane {
+    -fx-background-color: #1e293b;
+    -fx-border-color: #334155;
+    -fx-border-width: 0 1 0 0;
+}
+
+.sidebar-brand-header {
+    -fx-background-color: #0f172a;
+    -fx-border-color: #334155;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 14 16;
+}
+
+.brand-title {
+    -fx-text-fill: #f8fafc;
+    -fx-font-size: 16px;
     -fx-font-weight: 800;
+}
+
+.brand-badge {
+    -fx-background-color: #312e81;
+    -fx-background-radius: 4;
+    -fx-padding: 2 6;
+    -fx-text-fill: #818cf8;
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+}
+
+.sidebar-search-box {
+    -fx-padding: 10 14;
+    -fx-background-color: #1e293b;
+}
+
+.sidebar-section-title {
+    -fx-text-fill: #94a3b8;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-padding: 10 16 6 16;
+}
+
+.conversation-list-view {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 4 8;
+}
+
+.conversation-list-view .list-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #e2e8f0;
+    -fx-background-radius: 8;
+    -fx-padding: 8 10;
+    -fx-cursor: hand;
+}
+
+.conversation-list-view .list-cell:filled:hover {
+    -fx-background-color: #334155;
+    -fx-text-fill: #ffffff;
+}
+
+.conversation-list-view .list-cell:filled:selected {
+    -fx-background-color: #4338ca;
+    -fx-text-fill: #ffffff;
+}
+
+.conversation-name {
+    -fx-text-fill: #f1f5f9;
+    -fx-font-weight: 600;
+    -fx-font-size: 13px;
+}
+
+.conversation-status-hint {
+    -fx-text-fill: #94a3b8;
     -fx-font-size: 11px;
 }
+
+/* Avatars */
+.avatar-circle {
+    -fx-fill: linear-gradient(to bottom right, #4f46e5, #7c3aed);
+    -fx-stroke: #6366f1;
+    -fx-stroke-width: 1.5;
+}
+
+.avatar-label {
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: 800;
+    -fx-font-size: 12px;
+}
+
 .online-dot {
-    -fx-fill: #22c55e;
+    -fx-fill: #10b981;
+    -fx-stroke: #1e293b;
+    -fx-stroke-width: 1.5;
+}
+
+.offline-dot {
+    -fx-fill: #64748b;
+    -fx-stroke: #1e293b;
+    -fx-stroke-width: 1.5;
+}
+
+/* ========================================================
+   Active Chat Workspace
+   ======================================================== */
+.chat-center {
+    -fx-background-color: #0b1120;
+}
+
+.chat-header-bar {
+    -fx-background-color: #1e293b;
+    -fx-border-color: #334155;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 12 20;
+}
+
+.chat-header-peer {
+    -fx-text-fill: #f8fafc;
+    -fx-font-size: 15px;
+    -fx-font-weight: 700;
+}
+
+.encrypted-pill {
+    -fx-background-color: rgba(16, 185, 129, 0.15);
+    -fx-background-radius: 12;
+    -fx-border-color: #059669;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-padding: 2 10;
+}
+
+.encrypted-text {
+    -fx-text-fill: #34d399;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+}
+
+/* Message Display Area */
+.message-pane {
+    -fx-background-color: #0b1120;
+}
+
+.message-scroll {
+    -fx-background: #0b1120;
+    -fx-background-color: #0b1120;
+    -fx-border-color: transparent;
+}
+
+.message-scroll .viewport {
+    -fx-background-color: #0b1120;
+}
+
+.message-list {
+    -fx-background-color: transparent;
+    -fx-padding: 18 24;
+}
+
+.message-bubble {
+    -fx-background-color: #1e293b;
+    -fx-border-color: #334155;
+    -fx-border-width: 1;
+    -fx-background-radius: 16 16 16 4;
+    -fx-border-radius: 16 16 16 4;
+    -fx-padding: 10 14;
+    -fx-max-width: 520;
+}
+
+.message-own {
+    -fx-background-color: linear-gradient(to bottom right, #6366f1, #4f46e5);
+    -fx-border-color: #818cf8;
+    -fx-border-width: 1;
+    -fx-background-radius: 16 16 4 16;
+    -fx-border-radius: 16 16 4 16;
+}
+
+.message-sender {
+    -fx-text-fill: #818cf8;
+    -fx-font-weight: 700;
+    -fx-font-size: 11px;
+}
+
+.message-own .message-sender {
+    -fx-text-fill: #e0e7ff;
+}
+
+.message-content {
+    -fx-text-fill: #f1f5f9;
+    -fx-font-size: 13.5px;
+}
+
+.message-own .message-content {
+    -fx-text-fill: #ffffff;
+}
+
+.message-system-pill {
+    -fx-background-color: #1e293b;
+    -fx-border-color: #334155;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-padding: 4 12;
+}
+
+.message-system-text {
+    -fx-text-fill: #94a3b8;
+    -fx-font-size: 11px;
+    -fx-font-weight: 500;
+}
+
+.message-empty-card {
+    -fx-background-color: #1e293b;
+    -fx-background-radius: 16;
+    -fx-border-color: #334155;
+    -fx-border-radius: 16;
+    -fx-padding: 28 36;
+    -fx-alignment: center;
+}
+
+/* ========================================================
+   Message Input Row (Bottom)
+   ======================================================== */
+.message-input-row {
+    -fx-background-color: #1e293b;
+    -fx-border-color: #334155;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 12 18;
+}
+
+/* ========================================================
+   Form Inputs & Buttons
+   ======================================================== */
+.text-field, .password-field {
+    -fx-background-color: #0f172a;
+    -fx-border-color: #334155;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-text-fill: #f8fafc;
+    -fx-prompt-text-fill: #64748b;
+    -fx-padding: 9 12;
+    -fx-highlight-fill: #6366f1;
+    -fx-highlight-text-fill: #ffffff;
+}
+
+.text-field:focused, .password-field:focused {
+    -fx-border-color: #6366f1;
+    -fx-border-width: 1.5;
+}
+
+.pill-input {
+    -fx-background-radius: 24;
+    -fx-border-radius: 24;
+    -fx-padding: 10 16;
+}
+
+.btn-primary {
+    -fx-background-color: linear-gradient(to right, #6366f1, #4f46e5);
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: 700;
+    -fx-background-radius: 8;
+    -fx-padding: 9 18;
+    -fx-cursor: hand;
+}
+
+.btn-primary:hover {
+    -fx-background-color: linear-gradient(to right, #4f46e5, #4338ca);
+}
+
+.btn-primary:pressed {
+    -fx-background-color: #3730a3;
+}
+
+.btn-secondary {
+    -fx-background-color: #334155;
+    -fx-text-fill: #f1f5f9;
+    -fx-font-weight: 600;
+    -fx-background-radius: 8;
+    -fx-padding: 9 14;
+    -fx-cursor: hand;
+}
+
+.btn-secondary:hover {
+    -fx-background-color: #475569;
+}
+
+.btn-round-send {
+    -fx-background-color: linear-gradient(to bottom right, #6366f1, #4f46e5);
+    -fx-background-radius: 24;
+    -fx-min-width: 42;
+    -fx-min-height: 42;
+    -fx-pref-width: 42;
+    -fx-pref-height: 42;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.btn-round-send:hover {
+    -fx-background-color: linear-gradient(to bottom right, #4f46e5, #4338ca);
+}
+
+.btn-icon-subtle {
+    -fx-background-color: transparent;
+    -fx-background-radius: 6;
+    -fx-padding: 6 10;
+    -fx-text-fill: #94a3b8;
+    -fx-cursor: hand;
+}
+
+.btn-icon-subtle:hover {
+    -fx-background-color: #334155;
+    -fx-text-fill: #ffffff;
+}
+
+/* ========================================================
+   Authentication Banner / Card
+   ======================================================== */
+.auth-banner-root {
+    -fx-background-color: #0f172a;
+    -fx-border-color: #334155;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 12 18;
+}
+
+.auth-hero-card {
+    -fx-background-color: #1e293b;
+    -fx-border-color: #334155;
+    -fx-border-radius: 16;
+    -fx-background-radius: 16;
+    -fx-padding: 24 32;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.45), 20, 0, 0, 8);
+}
+
+.auth-tab-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #94a3b8;
+    -fx-font-weight: 700;
+    -fx-font-size: 13px;
+    -fx-padding: 6 14;
+    -fx-border-color: transparent;
+    -fx-cursor: hand;
+}
+
+.auth-tab-btn-active {
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #6366f1;
+    -fx-border-width: 0 0 2 0;
+}
+
+/* User Profile Badge (When Logged In) */
+.user-profile-badge {
+    -fx-background-color: #1e293b;
+    -fx-border-color: #334155;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 10 14;
+}
+
+/* ========================================================
+   Status Bar (Footer)
+   ======================================================== */
+.status-bar {
+    -fx-background-color: #090d16;
+    -fx-border-color: #1e293b;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 6 14;
+}
+
+.status-label {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 11px;
+    -fx-font-weight: 500;
+}
+
+/* ========================================================
+   Scrollbars Modernization
+   ======================================================== */
+.scroll-bar:vertical, .scroll-bar:horizontal {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:vertical .track, .scroll-bar:horizontal .track {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:vertical .thumb, .scroll-bar:horizontal .thumb {
+    -fx-background-color: #334155;
+    -fx-background-radius: 6;
+}
+
+.scroll-bar:vertical .thumb:hover, .scroll-bar:horizontal .thumb:hover {
+    -fx-background-color: #475569;
+}
+
+.scroll-bar .increment-button, .scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
 }
