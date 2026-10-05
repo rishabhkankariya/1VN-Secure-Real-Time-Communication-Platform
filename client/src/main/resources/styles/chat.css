@@ -1,0 +1,14 @@
+/* Avatars */
+.avatar-circle {
+    -fx-fill: #1e293b;
+    -fx-stroke: #6366f1;
+    -fx-stroke-width: 1.2;
+}
+.avatar-label {
+    -fx-text-fill: #f8fafc;
+    -fx-font-weight: 800;
+    -fx-font-size: 11px;
+}
+.online-dot {
+    -fx-fill: #22c55e;
+}
