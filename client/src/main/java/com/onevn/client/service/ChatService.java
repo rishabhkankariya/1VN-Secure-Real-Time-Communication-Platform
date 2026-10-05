@@ -50,5 +50,34 @@ public class ChatService {
 
         chatClient.sendMessage(text);
     }
+
+    public void createRoom(String username) {
+        chatClient.createRoom(username);
+    }
+
+    public void joinRoom(String code, String username) {
+        chatClient.joinRoom(code, username);
+    }
+
+    public void sendRoomMessage(String text) {
+        chatClient.sendRoomMessage(text);
+    }
+
+    public void requestRoomMembers() {
+        chatClient.requestRoomMembers();
+    }
+
+    public void leaveRoom() {
+        chatClient.leaveRoom();
+    }
+
+    public boolean isConnected() {
+        return chatClient.isConnected();
+    }
+
+    public void disconnect() throws IOException {
+        chatClient.disconnect();
+    }
 }
+
 

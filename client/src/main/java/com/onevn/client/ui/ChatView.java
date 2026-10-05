@@ -2,28 +2,35 @@ package com.onevn.client.ui;
 
 import com.onevn.client.service.ChatService;
 
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Circle;
+import javafx.util.Duration;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 public class ChatView {
 
     private final AuthPane authPane = new AuthPane();
     private final ConversationPane conversationPane = new ConversationPane();
+    private final RoomLobbyPane roomLobbyPane = new RoomLobbyPane();
     private final MessagePane messagePane = new MessagePane();
     private final StatusBar statusBar = new StatusBar();
     private final TextField messageField = new TextField();
@@ -31,24 +38,36 @@ public class ChatView {
 
     private final Button historyButton = new Button("History");
     private final Button presenceButton = new Button("Check Status");
+    private final Button copyRoomCodeHeaderBtn = new Button("Copy Code");
+    private final Button leaveRoomHeaderBtn = new Button("Leave Room");
 
     // Chat Header Components
     private final Label peerTitleLabel = new Label("Select a conversation");
     private final Label peerStatusLabel = new Label("Select a contact to begin messaging");
     private final Circle peerAvatarCircle = new Circle(16);
     private final Label peerAvatarLabel = new Label("?");
+    private final StackPane peerAvatar = new StackPane(peerAvatarCircle, peerAvatarLabel);
     private final HBox encryptedBadge = new HBox(6);
+
+    private final StackPane centerStack = new StackPane();
+    private VBox chatCenter;
 
     private final ChatService chatService = new ChatService();
     private final Set<String> knownUsers = new LinkedHashSet<>();
+    private final List<String> roomMembers = new ArrayList<>();
 
     private boolean connected = false;
     private boolean authenticated = false;
     private boolean loadingHistory = false;
+
+    private String currentUsername = null;
     private String selectedUser = null;
+    private String activeRoomCode = null;
+    private String roomAdmin = null;
 
     public BorderPane createView() {
 
+        // --- Bottom Message Input ---
         messageField.setPromptText("Type a message... (Press Enter to send)");
         messageField.getStyleClass().add("pill-input");
         messageField.setDisable(true);
@@ -70,13 +89,39 @@ public class ChatView {
         presenceButton.setDisable(true);
         presenceButton.setOnAction(event -> checkPresence());
 
+        copyRoomCodeHeaderBtn.getStyleClass().add("btn-secondary");
+        copyRoomCodeHeaderBtn.setGraphic(VectorIcons.icon(VectorIcons.COPY, 13, "#f8fafc"));
+        copyRoomCodeHeaderBtn.setVisible(false);
+        copyRoomCodeHeaderBtn.setManaged(false);
+        copyRoomCodeHeaderBtn.setOnAction(e -> copyActiveRoomCode());
+
+        leaveRoomHeaderBtn.getStyleClass().add("btn-leave-room");
+        leaveRoomHeaderBtn.setGraphic(VectorIcons.icon(VectorIcons.LEAVE, 13, "#f87171"));
+        leaveRoomHeaderBtn.setVisible(false);
+        leaveRoomHeaderBtn.setManaged(false);
+        leaveRoomHeaderBtn.setOnAction(e -> leaveCurrentRoom());
+
+        // Wire AuthPane events
         authPane.setOnRegister(this::register);
         authPane.setOnLogin(this::login);
         authPane.setOnLogout(this::logout);
+        authPane.setOnLobbyRequested(this::showLobby);
+        authPane.setOnAccountModeRequested(() -> {
+            if (activeRoomCode == null && !authenticated) {
+                authPane.showAccountBar();
+            }
+        });
+        authPane.setOnLeaveRoom(this::leaveCurrentRoom);
 
+        // Wire RoomLobbyPane events
+        roomLobbyPane.setOnCreateRoom(this::createRoom);
+        roomLobbyPane.setOnJoinRoom(this::joinRoom);
+
+        // Wire ConversationPane events
         conversationPane.setOnConversationSelected(this::onConversationSelected);
         conversationPane.setOnNewConversationRequested(this::onNewConversationRequested);
         conversationPane.setOnSearchRequested(this::searchUsers);
+        conversationPane.setOnLeaveRoomRequested(this::leaveCurrentRoom);
         conversationPane.setOnRefreshDirectoryRequested(() -> {
             if (authenticated) {
                 statusBar.setStatus("Refreshing server user directory...");
@@ -87,7 +132,6 @@ public class ChatView {
         // --- Chat Header Bar ---
         peerAvatarCircle.getStyleClass().add("avatar-circle");
         peerAvatarLabel.getStyleClass().add("avatar-label");
-        StackPane peerAvatar = new StackPane(peerAvatarCircle, peerAvatarLabel);
 
         peerTitleLabel.getStyleClass().add("chat-header-peer");
         peerStatusLabel.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 11px;");
@@ -103,7 +147,7 @@ public class ChatView {
         headerLeft.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(headerLeft, Priority.ALWAYS);
 
-        HBox headerActions = new HBox(8, historyButton, presenceButton);
+        HBox headerActions = new HBox(8, copyRoomCodeHeaderBtn, leaveRoomHeaderBtn, historyButton, presenceButton);
         headerActions.setAlignment(Pos.CENTER_RIGHT);
 
         HBox chatHeader = new HBox(16, headerLeft, headerActions);
@@ -116,22 +160,172 @@ public class ChatView {
         inputBox.getStyleClass().add("message-input-row");
         inputBox.setAlignment(Pos.CENTER_LEFT);
 
-        // --- Center Workspace ---
-        VBox centerPane = new VBox(
+        // --- Center Workspace: Chat View ---
+        chatCenter = new VBox(
                 chatHeader,
                 messagePane.getRoot(),
                 inputBox
         );
-        centerPane.getStyleClass().add("chat-center");
+        chatCenter.getStyleClass().add("chat-center");
         VBox.setVgrow(messagePane.getRoot(), Priority.ALWAYS);
+
+        // Container Stack: toggles between Lobby view and Active Chat view
+        centerStack.getChildren().addAll(chatCenter, roomLobbyPane.getRoot());
+        VBox.setVgrow(centerStack, Priority.ALWAYS);
 
         BorderPane root = new BorderPane();
         root.setTop(authPane.getRoot());
         root.setLeft(conversationPane.getRoot());
-        root.setCenter(centerPane);
+        root.setCenter(centerStack);
         root.setBottom(statusBar.getRoot());
 
+        // Default: Show Lobby view
+        showLobby();
+
         return root;
+    }
+
+    private void showLobby() {
+        activeRoomCode = null;
+        selectedUser = null;
+        roomLobbyPane.getRoot().setVisible(true);
+        roomLobbyPane.getRoot().setManaged(true);
+        chatCenter.setVisible(false);
+        chatCenter.setManaged(false);
+
+        if (!authenticated) {
+            authPane.showLobbyBar();
+            conversationPane.showDirectChatMode();
+        } else {
+            authPane.setAuthenticated(true);
+        }
+
+        statusBar.setStatus("1VN Instant Rooms: Ready to create or join a room.");
+    }
+
+    private void showActiveRoomView(String roomCode, String username) {
+        activeRoomCode = roomCode;
+        selectedUser = null;
+        currentUsername = username;
+
+        roomLobbyPane.getRoot().setVisible(false);
+        roomLobbyPane.getRoot().setManaged(false);
+        chatCenter.setVisible(true);
+        chatCenter.setManaged(true);
+
+        // Configure Chat Header for Room Mode
+        peerAvatarCircle.setStyle("-fx-fill: linear-gradient(to bottom right, #f59e0b, #d97706); -fx-stroke: #f59e0b;");
+        peerAvatarLabel.setText("#");
+        peerTitleLabel.setText("Room #" + roomCode);
+        peerStatusLabel.setText(roomMembers.size() + " connected members • Instant Room");
+
+        copyRoomCodeHeaderBtn.setVisible(true);
+        copyRoomCodeHeaderBtn.setManaged(true);
+        leaveRoomHeaderBtn.setVisible(true);
+        leaveRoomHeaderBtn.setManaged(true);
+        historyButton.setVisible(false);
+        historyButton.setManaged(false);
+        presenceButton.setVisible(false);
+        presenceButton.setManaged(false);
+
+        messageField.setDisable(false);
+        sendButton.setDisable(false);
+        messageField.setPromptText("Message #" + roomCode + "... (Press Enter to send)");
+        messageField.requestFocus();
+
+        messagePane.setCurrentUser(username);
+        messagePane.clear();
+        messagePane.addSystemMessage("🎉 You entered Room #" + roomCode + " as @" + username + ". Messages are broadcast to all room members.");
+
+        // Update Top Bar & Sidebar
+        authPane.showRoomActiveBar(roomCode, username);
+        conversationPane.showRoomMode(roomCode, roomAdmin, roomMembers);
+
+        statusBar.setStatus("Connected to Room #" + roomCode + " (" + roomMembers.size() + " members)");
+    }
+
+    private void showDirectChatView(String user) {
+        activeRoomCode = null;
+        selectedUser = user;
+
+        roomLobbyPane.getRoot().setVisible(false);
+        roomLobbyPane.getRoot().setManaged(false);
+        chatCenter.setVisible(true);
+        chatCenter.setManaged(true);
+
+        peerAvatarCircle.setStyle("");
+        peerAvatarCircle.getStyleClass().setAll("avatar-circle");
+        peerAvatarLabel.setText(!user.isEmpty() ? user.substring(0, 1).toUpperCase() : "?");
+        peerTitleLabel.setText("@" + user);
+        peerStatusLabel.setText("Direct Encrypted Session");
+
+        copyRoomCodeHeaderBtn.setVisible(false);
+        copyRoomCodeHeaderBtn.setManaged(false);
+        leaveRoomHeaderBtn.setVisible(false);
+        leaveRoomHeaderBtn.setManaged(false);
+        historyButton.setVisible(true);
+        historyButton.setManaged(true);
+        presenceButton.setVisible(true);
+        presenceButton.setManaged(true);
+
+        messageField.setDisable(false);
+        sendButton.setDisable(false);
+        messageField.setPromptText("Message @" + user + "... (Press Enter to send)");
+        messageField.requestFocus();
+
+        conversationPane.showDirectChatMode();
+    }
+
+    private void createRoom(String username) {
+        if (!ensureConnected()) {
+            roomLobbyPane.showError("Could not reach 1VN server. Ensure server is running.");
+            return;
+        }
+        currentUsername = username;
+        roomAdmin = username;
+        roomMembers.clear();
+        roomMembers.add(username);
+        statusBar.setStatus("Creating private room for @" + username + "...");
+        chatService.createRoom(username);
+    }
+
+    private void joinRoom(String code, String username) {
+        if (!ensureConnected()) {
+            roomLobbyPane.showError("Could not reach 1VN server. Ensure server is running.");
+            return;
+        }
+        currentUsername = username;
+        roomAdmin = null;
+        roomMembers.clear();
+        roomMembers.add(username);
+        statusBar.setStatus("Joining Room #" + code + "...");
+        chatService.joinRoom(code, username);
+    }
+
+    private void leaveCurrentRoom() {
+        if (activeRoomCode != null) {
+            chatService.leaveRoom();
+            activeRoomCode = null;
+            roomMembers.clear();
+            showLobby();
+        }
+    }
+
+    private void copyActiveRoomCode() {
+        if (activeRoomCode == null) return;
+        Clipboard clipboard = Clipboard.getSystemClipboard();
+        ClipboardContent content = new ClipboardContent();
+        content.putString(activeRoomCode);
+        clipboard.setContent(content);
+
+        copyRoomCodeHeaderBtn.setText("✓ Copied!");
+        copyRoomCodeHeaderBtn.setGraphic(VectorIcons.icon(VectorIcons.CHECK, 13, "#ffffff"));
+        PauseTransition pt = new PauseTransition(Duration.seconds(2));
+        pt.setOnFinished(e -> {
+            copyRoomCodeHeaderBtn.setText("Copy Code");
+            copyRoomCodeHeaderBtn.setGraphic(VectorIcons.icon(VectorIcons.COPY, 13, "#f8fafc"));
+        });
+        pt.play();
     }
 
     private void register() {
@@ -186,23 +380,19 @@ public class ChatView {
     private void logout() {
         authenticated = false;
         selectedUser = null;
+        activeRoomCode = null;
         knownUsers.clear();
+        roomMembers.clear();
         conversationPane.clear();
         messagePane.clear();
         messagePane.showEmptyState();
-        peerTitleLabel.setText("Select a conversation");
-        peerAvatarLabel.setText("?");
-        peerStatusLabel.setText("Select a contact to begin messaging");
-        messageField.setDisable(true);
-        sendButton.setDisable(true);
-        historyButton.setDisable(true);
-        presenceButton.setDisable(true);
+        showLobby();
         authPane.setAuthenticated(false);
         statusBar.setStatus("Signed out. Ready to connect.");
     }
 
     private boolean ensureConnected() {
-        if (connected) {
+        if (connected && chatService.isConnected()) {
             return true;
         }
 
@@ -214,10 +404,13 @@ public class ChatView {
             connected = true;
             statusBar.setStatus("Connected to 1VN Server (" + host + ":" + port + ")");
             authPane.clearError();
+            roomLobbyPane.clearMessages();
             return true;
         } catch (IOException e) {
+            connected = false;
             statusBar.setStatus("Could not connect to " + host + ":" + port);
             authPane.showError("Could not connect to " + host + ":" + port + ". Make sure server is reachable.");
+            roomLobbyPane.showError("Could not reach 1VN server (" + host + ":" + port + ").");
             return false;
         }
     }
@@ -233,24 +426,86 @@ public class ChatView {
     }
 
     private void handleServerMessage(String message) {
-        if (message.equals("REGISTER OK") || message.equals("LOGIN OK")) {
-            authenticated = true;
-            statusBar.setStatus("Authenticated as @" + authPane.getUsername());
-            authPane.setAuthenticated(true);
-
-            if (selectedUser == null) {
-                messageField.setDisable(true);
-                sendButton.setDisable(true);
-            } else {
-                messageField.setDisable(false);
-                sendButton.setDisable(false);
-                messageField.requestFocus();
+        // --- Room Protocol Events ---
+        if (message.startsWith("ROOM_CREATED ")) {
+            String[] parts = message.split(" ", 3);
+            if (parts.length >= 3) {
+                String code = parts[1];
+                String user = parts[2];
+                roomAdmin = user;
+                if (!roomMembers.contains(user)) roomMembers.add(user);
+                showActiveRoomView(code, user);
             }
 
-            messagePane.setCurrentUser(authPane.getUsername());
-            messagePane.addSystemMessage("Welcome, @" + authPane.getUsername() + "! End-to-end encrypted session active.");
+        } else if (message.startsWith("ROOM_JOINED ")) {
+            String[] parts = message.split(" ", 3);
+            if (parts.length >= 3) {
+                String code = parts[1];
+                String user = parts[2];
+                if (!roomMembers.contains(user)) roomMembers.add(user);
+                showActiveRoomView(code, user);
+            }
 
-            // Request user directory from server
+        } else if (message.startsWith("ROOM_MEMBERS ")) {
+            String list = message.substring("ROOM_MEMBERS ".length()).trim();
+            roomMembers.clear();
+            if (!list.isEmpty()) {
+                String[] names = list.split(",");
+                roomMembers.addAll(Arrays.asList(names));
+            }
+            if (activeRoomCode != null) {
+                peerStatusLabel.setText(roomMembers.size() + " connected members • Instant Room");
+                conversationPane.updateRoomMembers(roomMembers);
+            }
+
+        } else if (message.startsWith("ROOM_MEMBER_JOINED ")) {
+            String newMember = message.substring("ROOM_MEMBER_JOINED ".length()).trim();
+            if (!roomMembers.contains(newMember)) {
+                roomMembers.add(newMember);
+            }
+            messagePane.addSystemMessage("👋 @" + newMember + " joined the room.");
+            peerStatusLabel.setText(roomMembers.size() + " connected members • Instant Room");
+            conversationPane.updateRoomMembers(roomMembers);
+
+        } else if (message.startsWith("ROOM_MEMBER_LEFT ")) {
+            String leavingMember = message.substring("ROOM_MEMBER_LEFT ".length()).trim();
+            roomMembers.remove(leavingMember);
+            messagePane.addSystemMessage("🚪 @" + leavingMember + " left the room.");
+            peerStatusLabel.setText(roomMembers.size() + " connected members • Instant Room");
+            conversationPane.updateRoomMembers(roomMembers);
+
+        } else if (message.startsWith("ROOM_MSG ")) {
+            String text = message.substring("ROOM_MSG ".length()).trim();
+            int sep = text.indexOf(": ");
+            if (sep > 0) {
+                String sender = text.substring(0, sep);
+                String body = text.substring(sep + 2);
+                messagePane.addMessage(sender, body);
+            } else {
+                messagePane.addSystemMessage(text);
+            }
+
+        } else if (message.equals("ROOM_LEFT")) {
+            activeRoomCode = null;
+            roomMembers.clear();
+            showLobby();
+            statusBar.setStatus("Left room.");
+
+        } else if (message.startsWith("ROOM_ERROR:")) {
+            String err = message.substring("ROOM_ERROR:".length()).trim();
+            roomLobbyPane.showError(err);
+            statusBar.setStatus("Room Error: " + err);
+
+        // --- Account / Direct Chat Events ---
+        } else if (message.equals("REGISTER OK") || message.equals("LOGIN OK")) {
+            authenticated = true;
+            currentUsername = authPane.getUsername();
+            statusBar.setStatus("Authenticated as @" + currentUsername);
+            authPane.setAuthenticated(true);
+            conversationPane.showDirectChatMode();
+
+            messagePane.setCurrentUser(currentUsername);
+            messagePane.addSystemMessage("Welcome, @" + currentUsername + "! End-to-end encrypted session active.");
             chatService.searchUsers("");
 
         } else if (message.startsWith("USERS_RESULT")) {
@@ -342,20 +597,10 @@ public class ChatView {
             return;
         }
 
-        selectedUser = user;
-        peerTitleLabel.setText("@" + user);
-        peerAvatarLabel.setText(!user.isEmpty() ? user.substring(0, 1).toUpperCase() : "?");
-        peerStatusLabel.setText("Connecting session...");
-
-        messageField.setDisable(false);
-        sendButton.setDisable(false);
-        historyButton.setDisable(false);
-        presenceButton.setDisable(false);
-
+        showDirectChatView(user);
         messagePane.clear();
         chatService.requestHistory(user);
         chatService.requestPresence(user);
-        messageField.requestFocus();
     }
 
     private void onNewConversationRequested(String user) {
@@ -402,24 +647,28 @@ public class ChatView {
     }
 
     private void sendMessage() {
+        String text = messageField.getText();
+        if (text == null || text.trim().isBlank()) {
+            return;
+        }
+        text = text.trim();
+
+        if (activeRoomCode != null) {
+            chatService.sendRoomMessage(text);
+            messageField.clear();
+            return;
+        }
+
         if (!authenticated) {
             return;
         }
 
         if (selectedUser == null) {
-            statusBar.setStatus("Select a conversation first.");
-            messageField.setDisable(true);
-            sendButton.setDisable(true);
+            statusBar.setStatus("Select a conversation or join a room first.");
             return;
         }
 
-        String target = selectedUser;
-        String text = messageField.getText();
-        if (text == null || text.trim().isBlank()) {
-            return;
-        }
-
-        chatService.sendMessage("TO " + target + " " + text.trim());
+        chatService.sendMessage("TO " + selectedUser + " " + text);
         messageField.clear();
     }
 }

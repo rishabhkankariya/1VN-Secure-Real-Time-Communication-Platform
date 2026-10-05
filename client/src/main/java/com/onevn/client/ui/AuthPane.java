@@ -1,6 +1,5 @@
 package com.onevn.client.ui;
 
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -20,20 +19,32 @@ public class AuthPane {
     private final TextField serverAddressField = new TextField("127.0.0.1:5000");
     private final Button actionButton = new Button("Sign In");
     private final Button toggleModeButton = new Button("Register");
-    private final Button serverToggleBtn = new Button("Server");
+    private final Button serverToggleBtn = new Button();
     private final Label errorLabel = new Label();
 
     private final VBox root;
-    private final HBox authBar;
+
+    // Modes in the Top Bar
+    private final HBox lobbyTopBar;
+    private final HBox accountTopBar;
     private final HBox profileBar;
+    private final HBox roomActiveBar;
+
     private final Label profileNameLabel = new Label();
     private final Label profileServerLabel = new Label("127.0.0.1:5000");
 
+    private final Label roomActiveCodeLabel = new Label();
+    private final Label roomActiveUserLabel = new Label();
+
     private boolean registerMode = false;
     private boolean serverConfigOpen = false;
+
     private Runnable onRegister;
     private Runnable onLogin;
     private Runnable onLogout;
+    private Runnable onLobbyRequested;
+    private Runnable onAccountModeRequested;
+    private Runnable onLeaveRoom;
 
     public AuthPane() {
         root = new VBox();
@@ -53,42 +64,65 @@ public class AuthPane {
         HBox brandBox = new HBox(8, brandLogo, title, badge);
         brandBox.setAlignment(Pos.CENTER_LEFT);
 
-        // --- Inputs with Vector Icon Badges ---
-        usernameField.setPromptText("Username");
-        usernameField.setPrefWidth(130);
+        // --- 1. Lobby Top Bar (Default: Instant Rooms active) ---
+        Button lobbyActiveBtn = new Button("⚡ Instant Rooms");
+        lobbyActiveBtn.getStyleClass().add("btn-primary");
+        lobbyActiveBtn.setStyle("-fx-font-size: 12px; -fx-padding: 6 14;");
 
-        emailField.setPromptText("Email Address");
-        emailField.setPrefWidth(150);
-        emailField.setVisible(false);
-        emailField.setManaged(false);
-
-        passwordField.setPromptText("Password");
-        passwordField.setPrefWidth(120);
+        Button switchToAccountBtn = new Button("🔐 Account Login");
+        switchToAccountBtn.getStyleClass().add("btn-secondary");
+        switchToAccountBtn.setStyle("-fx-font-size: 12px; -fx-padding: 6 14;");
+        switchToAccountBtn.setOnAction(e -> {
+            if (onAccountModeRequested != null) onAccountModeRequested.run();
+            showAccountBar();
+        });
 
         serverAddressField.setPromptText("host:port (e.g. 127.0.0.1:5000)");
         serverAddressField.setPrefWidth(150);
         serverAddressField.setVisible(false);
         serverAddressField.setManaged(false);
 
-        HBox userBox = new HBox(6, VectorIcons.icon(VectorIcons.USER, 14, "#94a3b8"), usernameField);
-        userBox.setAlignment(Pos.CENTER_LEFT);
+        serverToggleBtn.getStyleClass().add("btn-icon-subtle");
+        serverToggleBtn.setGraphic(VectorIcons.icon(VectorIcons.SIGNAL, 13, "#94a3b8"));
+        serverToggleBtn.setOnAction(e -> toggleServerField());
 
-        HBox emailBox = new HBox(6, VectorIcons.icon(VectorIcons.MAIL, 14, "#94a3b8"), emailField);
-        emailBox.setAlignment(Pos.CENTER_LEFT);
-        emailBox.visibleProperty().bind(emailField.visibleProperty());
-        emailBox.managedProperty().bind(emailField.managedProperty());
-
-        HBox passBox = new HBox(6, VectorIcons.icon(VectorIcons.LOCK, 14, "#94a3b8"), passwordField);
-        passBox.setAlignment(Pos.CENTER_LEFT);
-
-        HBox serverBox = new HBox(6, VectorIcons.icon(VectorIcons.SIGNAL, 14, "#94a3b8"), serverAddressField);
+        HBox serverBox = new HBox(6, VectorIcons.icon(VectorIcons.SIGNAL, 13, "#94a3b8"), serverAddressField);
         serverBox.setAlignment(Pos.CENTER_LEFT);
         serverBox.visibleProperty().bind(serverAddressField.visibleProperty());
         serverBox.managedProperty().bind(serverAddressField.managedProperty());
 
-        // --- Buttons ---
+        HBox lobbyRight = new HBox(10, lobbyActiveBtn, switchToAccountBtn, serverBox, serverToggleBtn);
+        lobbyRight.setAlignment(Pos.CENTER_RIGHT);
+        HBox.setHgrow(lobbyRight, Priority.ALWAYS);
+
+        lobbyTopBar = new HBox(16, brandBox, lobbyRight);
+        lobbyTopBar.setAlignment(Pos.CENTER_LEFT);
+
+        // --- 2. Account Mode Top Bar (Inputs for Login/Register) ---
+        usernameField.setPromptText("Username");
+        usernameField.setPrefWidth(120);
+
+        emailField.setPromptText("Email");
+        emailField.setPrefWidth(130);
+        emailField.setVisible(false);
+        emailField.setManaged(false);
+
+        passwordField.setPromptText("Password");
+        passwordField.setPrefWidth(110);
+
+        HBox userBox = new HBox(6, VectorIcons.icon(VectorIcons.USER, 13, "#94a3b8"), usernameField);
+        userBox.setAlignment(Pos.CENTER_LEFT);
+
+        HBox emailBox = new HBox(6, VectorIcons.icon(VectorIcons.MAIL, 13, "#94a3b8"), emailField);
+        emailBox.setAlignment(Pos.CENTER_LEFT);
+        emailBox.visibleProperty().bind(emailField.visibleProperty());
+        emailBox.managedProperty().bind(emailField.managedProperty());
+
+        HBox passBox = new HBox(6, VectorIcons.icon(VectorIcons.LOCK, 13, "#94a3b8"), passwordField);
+        passBox.setAlignment(Pos.CENTER_LEFT);
+
         actionButton.getStyleClass().add("btn-primary");
-        actionButton.setGraphic(VectorIcons.icon(VectorIcons.CHECK, 14, "#ffffff"));
+        actionButton.setGraphic(VectorIcons.icon(VectorIcons.CHECK, 13, "#ffffff"));
         actionButton.setOnAction(event -> {
             clearError();
             if (registerMode) {
@@ -98,7 +132,6 @@ public class AuthPane {
             }
         });
 
-        // Trigger action on Enter press
         passwordField.setOnAction(e -> actionButton.fire());
         usernameField.setOnAction(e -> {
             if (registerMode && emailField.getText().isBlank()) {
@@ -111,25 +144,32 @@ public class AuthPane {
         toggleModeButton.getStyleClass().add("btn-secondary");
         toggleModeButton.setOnAction(e -> setRegisterMode(!registerMode));
 
-        serverToggleBtn.getStyleClass().add("btn-icon-subtle");
-        serverToggleBtn.setGraphic(VectorIcons.icon(VectorIcons.SIGNAL, 13, "#94a3b8"));
-        serverToggleBtn.setOnAction(e -> {
-            serverConfigOpen = !serverConfigOpen;
-            serverAddressField.setVisible(serverConfigOpen);
-            serverAddressField.setManaged(serverConfigOpen);
-            if (serverConfigOpen) {
-                serverAddressField.requestFocus();
-            }
+        Button backToLobbyBtn = new Button("⚡ Instant Rooms");
+        backToLobbyBtn.getStyleClass().add("btn-secondary");
+        backToLobbyBtn.setOnAction(e -> {
+            if (onLobbyRequested != null) onLobbyRequested.run();
+            showLobbyBar();
         });
 
-        HBox inputsBox = new HBox(10, userBox, emailBox, passBox, serverBox, actionButton, toggleModeButton, serverToggleBtn);
-        inputsBox.setAlignment(Pos.CENTER_LEFT);
-        HBox.setHgrow(inputsBox, Priority.ALWAYS);
+        HBox accountInputs = new HBox(8, userBox, emailBox, passBox, actionButton, toggleModeButton, backToLobbyBtn);
+        accountInputs.setAlignment(Pos.CENTER_RIGHT);
+        HBox.setHgrow(accountInputs, Priority.ALWAYS);
 
-        authBar = new HBox(16, brandBox, inputsBox);
-        authBar.setAlignment(Pos.CENTER_LEFT);
+        // Recreate brand box copy for account bar
+        Circle brandIconBg2 = new Circle(16);
+        brandIconBg2.getStyleClass().add("avatar-circle");
+        StackPane brandLogo2 = new StackPane(brandIconBg2, VectorIcons.icon(VectorIcons.CHAT_BUBBLE, 18, "#ffffff"));
+        HBox brandBox2 = new HBox(8, brandLogo2, new Label("1VN"), new Label("ACCOUNTS"));
+        brandBox2.setAlignment(Pos.CENTER_LEFT);
+        ((Label) brandBox2.getChildren().get(1)).getStyleClass().add("brand-title");
+        ((Label) brandBox2.getChildren().get(2)).getStyleClass().add("brand-badge");
 
-        // --- Logged-In Profile Bar ---
+        accountTopBar = new HBox(16, brandBox2, accountInputs);
+        accountTopBar.setAlignment(Pos.CENTER_LEFT);
+        accountTopBar.setVisible(false);
+        accountTopBar.setManaged(false);
+
+        // --- 3. Logged-In Profile Bar ---
         Circle avatarCircle = new Circle(14);
         avatarCircle.getStyleClass().add("avatar-circle");
         Label avatarLetter = new Label("U");
@@ -148,24 +188,113 @@ public class AuthPane {
             if (onLogout != null) onLogout.run();
         });
 
-        HBox profileLeft = new HBox(10, brandBox, new Label("•"), avatarWrap, userDetails);
+        Button lobbyFromProfileBtn = new Button("⚡ Instant Rooms");
+        lobbyFromProfileBtn.getStyleClass().add("btn-secondary");
+        lobbyFromProfileBtn.setOnAction(e -> {
+            if (onLobbyRequested != null) onLobbyRequested.run();
+        });
+
+        Circle brandIconBg3 = new Circle(16);
+        brandIconBg3.getStyleClass().add("avatar-circle");
+        StackPane brandLogo3 = new StackPane(brandIconBg3, VectorIcons.icon(VectorIcons.CHAT_BUBBLE, 18, "#ffffff"));
+        HBox brandBox3 = new HBox(8, brandLogo3, new Label("1VN"), new Label("ONLINE"));
+        brandBox3.setAlignment(Pos.CENTER_LEFT);
+        ((Label) brandBox3.getChildren().get(1)).getStyleClass().add("brand-title");
+        ((Label) brandBox3.getChildren().get(2)).getStyleClass().add("brand-badge");
+
+        HBox profileLeft = new HBox(12, brandBox3, new Label("•"), avatarWrap, userDetails);
         profileLeft.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(profileLeft, Priority.ALWAYS);
 
-        profileBar = new HBox(16, profileLeft, logoutBtn);
+        profileBar = new HBox(16, profileLeft, lobbyFromProfileBtn, logoutBtn);
         profileBar.setAlignment(Pos.CENTER_LEFT);
         profileBar.setVisible(false);
         profileBar.setManaged(false);
+
+        // --- 4. Room Active Bar ---
+        Circle brandIconBg4 = new Circle(16);
+        brandIconBg4.getStyleClass().add("avatar-circle");
+        StackPane brandLogo4 = new StackPane(brandIconBg4, VectorIcons.icon(VectorIcons.CHAT_BUBBLE, 18, "#ffffff"));
+        HBox brandBox4 = new HBox(8, brandLogo4, new Label("1VN"), new Label("ROOM"));
+        brandBox4.setAlignment(Pos.CENTER_LEFT);
+        ((Label) brandBox4.getChildren().get(1)).getStyleClass().add("brand-title");
+        ((Label) brandBox4.getChildren().get(2)).getStyleClass().add("brand-badge");
+
+        roomActiveCodeLabel.setStyle("-fx-text-fill: #fbbf24; -fx-font-weight: 800; -fx-font-size: 14px; -fx-background-color: rgba(245, 158, 11, 0.15); -fx-padding: 3 10; -fx-background-radius: 6;");
+        roomActiveUserLabel.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 12px;");
+
+        HBox roomDetails = new HBox(12, brandBox4, roomActiveCodeLabel, roomActiveUserLabel);
+        roomDetails.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(roomDetails, Priority.ALWAYS);
+
+        Button leaveRoomTopBtn = new Button("Leave Room");
+        leaveRoomTopBtn.getStyleClass().add("btn-secondary");
+        leaveRoomTopBtn.setGraphic(VectorIcons.icon(VectorIcons.LEAVE, 14, "#f87171"));
+        leaveRoomTopBtn.setOnAction(e -> {
+            if (onLeaveRoom != null) onLeaveRoom.run();
+        });
+
+        roomActiveBar = new HBox(16, roomDetails, leaveRoomTopBtn);
+        roomActiveBar.setAlignment(Pos.CENTER_LEFT);
+        roomActiveBar.setVisible(false);
+        roomActiveBar.setManaged(false);
 
         // --- Error Alert ---
         errorLabel.setVisible(false);
         errorLabel.setManaged(false);
         errorLabel.setStyle("-fx-text-fill: #f87171; -fx-font-weight: 600; -fx-font-size: 12px; -fx-padding: 4 0 0 4;");
 
-        root.getChildren().addAll(authBar, profileBar, errorLabel);
+        root.getChildren().addAll(lobbyTopBar, accountTopBar, profileBar, roomActiveBar, errorLabel);
     }
 
-    private void setRegisterMode(boolean register) {
+    private void toggleServerField() {
+        serverConfigOpen = !serverConfigOpen;
+        serverAddressField.setVisible(serverConfigOpen);
+        serverAddressField.setManaged(serverConfigOpen);
+        if (serverConfigOpen) {
+            serverAddressField.requestFocus();
+        }
+    }
+
+    public void showLobbyBar() {
+        lobbyTopBar.setVisible(true);
+        lobbyTopBar.setManaged(true);
+        accountTopBar.setVisible(false);
+        accountTopBar.setManaged(false);
+        profileBar.setVisible(false);
+        profileBar.setManaged(false);
+        roomActiveBar.setVisible(false);
+        roomActiveBar.setManaged(false);
+        clearError();
+    }
+
+    public void showAccountBar() {
+        lobbyTopBar.setVisible(false);
+        lobbyTopBar.setManaged(false);
+        accountTopBar.setVisible(true);
+        accountTopBar.setManaged(true);
+        profileBar.setVisible(false);
+        profileBar.setManaged(false);
+        roomActiveBar.setVisible(false);
+        roomActiveBar.setManaged(false);
+        clearError();
+    }
+
+    public void showRoomActiveBar(String roomCode, String username) {
+        roomActiveCodeLabel.setText("Room: #" + roomCode);
+        roomActiveUserLabel.setText("Connected as @" + username);
+        lobbyTopBar.setVisible(false);
+        lobbyTopBar.setManaged(false);
+        accountTopBar.setVisible(false);
+        accountTopBar.setManaged(false);
+        profileBar.setVisible(false);
+        profileBar.setManaged(false);
+        roomActiveBar.setVisible(true);
+        roomActiveBar.setManaged(true);
+        clearError();
+    }
+
+    public void setRegisterMode(boolean register) {
         this.registerMode = register;
         emailField.setVisible(register);
         emailField.setManaged(register);
@@ -189,6 +318,18 @@ public class AuthPane {
 
     public void setOnLogout(Runnable handler) {
         this.onLogout = handler;
+    }
+
+    public void setOnLobbyRequested(Runnable handler) {
+        this.onLobbyRequested = handler;
+    }
+
+    public void setOnAccountModeRequested(Runnable handler) {
+        this.onAccountModeRequested = handler;
+    }
+
+    public void setOnLeaveRoom(Runnable handler) {
+        this.onLeaveRoom = handler;
     }
 
     public VBox getRoot() {
@@ -226,10 +367,14 @@ public class AuthPane {
     }
 
     public void setAuthenticated(boolean authenticated) {
-        authBar.setVisible(!authenticated);
-        authBar.setManaged(!authenticated);
+        lobbyTopBar.setVisible(false);
+        lobbyTopBar.setManaged(false);
+        accountTopBar.setVisible(!authenticated);
+        accountTopBar.setManaged(!authenticated);
         profileBar.setVisible(authenticated);
         profileBar.setManaged(authenticated);
+        roomActiveBar.setVisible(false);
+        roomActiveBar.setManaged(false);
 
         if (authenticated) {
             profileNameLabel.setText("@" + getUsername());
@@ -237,6 +382,7 @@ public class AuthPane {
             clearError();
         } else {
             passwordField.clear();
+            showLobbyBar();
         }
     }
 

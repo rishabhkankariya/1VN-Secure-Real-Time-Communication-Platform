@@ -402,3 +402,206 @@
     -fx-background-color: transparent;
     -fx-padding: 0;
 }
+
+/* ========================================================
+   1VN Room Lobby (Inspired by ip-chat)
+   ======================================================== */
+.lobby-root {
+    -fx-background-color: #0b1120;
+}
+
+.lobby-eyebrow {
+    -fx-text-fill: #818cf8;
+    -fx-font-size: 11px;
+    -fx-font-weight: 800;
+    -fx-background-color: rgba(99, 102, 241, 0.15);
+    -fx-border-color: rgba(99, 102, 241, 0.4);
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-padding: 3 12;
+}
+
+.lobby-title {
+    -fx-text-fill: #f8fafc;
+    -fx-font-size: 26px;
+    -fx-font-weight: 900;
+}
+
+.lobby-subtitle {
+    -fx-text-fill: #c7d2fe;
+    -fx-font-size: 14px;
+    -fx-font-weight: 600;
+}
+
+.lobby-support {
+    -fx-text-fill: #94a3b8;
+    -fx-font-size: 12px;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+}
+
+.lobby-error {
+    -fx-text-fill: #f87171;
+    -fx-background-color: rgba(239, 68, 68, 0.12);
+    -fx-border-color: rgba(239, 68, 68, 0.35);
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 8 16;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+}
+
+.lobby-notice {
+    -fx-text-fill: #38bdf8;
+    -fx-background-color: rgba(56, 189, 248, 0.12);
+    -fx-border-color: rgba(56, 189, 248, 0.35);
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 8 16;
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+}
+
+.room-card {
+    -fx-background-color: #1e293b;
+    -fx-border-color: #334155;
+    -fx-border-radius: 16;
+    -fx-background-radius: 16;
+    -fx-padding: 22 24;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.35), 14, 0, 0, 6);
+}
+
+.room-card:hover {
+    -fx-border-color: #475569;
+}
+
+.room-card-heading {
+    -fx-text-fill: #f8fafc;
+    -fx-font-size: 16px;
+    -fx-font-weight: 800;
+}
+
+.room-card-desc {
+    -fx-text-fill: #94a3b8;
+    -fx-font-size: 12px;
+    -fx-line-spacing: 2;
+}
+
+.field-label {
+    -fx-text-fill: #94a3b8;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+}
+
+.lobby-input {
+    -fx-background-color: #0f172a;
+    -fx-border-color: #334155;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-text-fill: #f8fafc;
+    -fx-font-size: 13px;
+    -fx-padding: 8 12;
+}
+
+.lobby-input:focused {
+    -fx-border-color: #6366f1;
+}
+
+.btn-create-room {
+    -fx-background-color: linear-gradient(to right, #6366f1, #4f46e5);
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: 800;
+    -fx-font-size: 13px;
+    -fx-background-radius: 8;
+    -fx-padding: 10 18;
+    -fx-cursor: hand;
+}
+
+.btn-create-room:hover {
+    -fx-background-color: linear-gradient(to right, #4f46e5, #4338ca);
+}
+
+.btn-join-room {
+    -fx-background-color: linear-gradient(to right, #10b981, #059669);
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: 800;
+    -fx-font-size: 13px;
+    -fx-background-radius: 8;
+    -fx-padding: 10 18;
+    -fx-cursor: hand;
+}
+
+.btn-join-room:hover {
+    -fx-background-color: linear-gradient(to right, #059669, #047857);
+}
+
+.or-circle {
+    -fx-fill: #0f172a;
+    -fx-stroke: #334155;
+    -fx-stroke-width: 1.5;
+}
+
+.or-text {
+    -fx-text-fill: #94a3b8;
+    -fx-font-size: 10px;
+    -fx-font-weight: 800;
+}
+
+.feature-pill-card {
+    -fx-background-color: #1e293b;
+    -fx-border-color: #334155;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-padding: 12 10;
+}
+
+.sidebar-room-card {
+    -fx-background-color: #0f172a;
+    -fx-border-color: #334155;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-padding: 14;
+}
+
+.room-code-badge-large {
+    -fx-text-fill: #fbbf24;
+    -fx-font-size: 22px;
+    -fx-font-weight: 900;
+    -fx-background-color: rgba(245, 158, 11, 0.12);
+    -fx-border-color: rgba(245, 158, 11, 0.35);
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 6 12;
+}
+
+.btn-copy-code {
+    -fx-background-color: linear-gradient(to right, #6366f1, #4f46e5);
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: 700;
+    -fx-font-size: 12px;
+    -fx-background-radius: 8;
+    -fx-padding: 8 14;
+    -fx-cursor: hand;
+}
+
+.btn-copy-code:hover {
+    -fx-background-color: linear-gradient(to right, #4f46e5, #4338ca);
+}
+
+.btn-leave-room {
+    -fx-background-color: rgba(239, 68, 68, 0.12);
+    -fx-border-color: rgba(239, 68, 68, 0.35);
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-text-fill: #f87171;
+    -fx-font-weight: 700;
+    -fx-font-size: 12px;
+    -fx-padding: 8 14;
+    -fx-cursor: hand;
+}
+
+.btn-leave-room:hover {
+    -fx-background-color: rgba(239, 68, 68, 0.25);
+    -fx-text-fill: #fca5a5;
+}
+

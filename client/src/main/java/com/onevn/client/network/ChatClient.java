@@ -68,6 +68,37 @@ public class ChatClient {
         }
     }
 
+    public void createRoom(String username) {
+        if (output != null) {
+            output.println("CREATE_ROOM " + username.trim());
+        }
+    }
+
+    public void joinRoom(String code, String username) {
+        if (output != null) {
+            output.println("JOIN_ROOM " + code.trim().toUpperCase() + " " + username.trim());
+        }
+    }
+
+    public void sendRoomMessage(String text) {
+        if (output != null) {
+            output.println("ROOM_MSG " + text.trim());
+        }
+    }
+
+    public void requestRoomMembers() {
+        if (output != null) {
+            output.println("ROOM_MEMBERS");
+        }
+    }
+
+    public void leaveRoom() {
+        if (output != null) {
+            output.println("LEAVE_ROOM");
+        }
+    }
+
+
 
     private void startListening(MessageListener listener) {
 
@@ -89,6 +120,10 @@ public class ChatClient {
 
         listenerThread.setDaemon(true);
         listenerThread.start();
+    }
+
+    public boolean isConnected() {
+        return socket != null && socket.isConnected() && !socket.isClosed();
     }
 
     public void disconnect() throws IOException {

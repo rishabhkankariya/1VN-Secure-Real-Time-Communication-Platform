@@ -26,6 +26,7 @@ public class ClientHandler implements Runnable {
 
     private long userId;
     private String username;
+    private String currentRoom;
 
 
     public ClientHandler(Socket socket, ChatServer server,
@@ -169,40 +170,113 @@ public class ClientHandler implements Runnable {
                     return;
                 }
 
+            } else if (firstLine.startsWith("CREATE_ROOM ")) {
+
+                String name = firstLine.substring("CREATE_ROOM ".length()).trim();
+                if (name.isBlank()) {
+                    output.println("ROOM_ERROR: Username required.");
+                    return;
+                }
+                username = name;
+                currentRoom = server.createRoom(this, username);
+                authenticated = true;
+                output.println("ROOM_CREATED " + currentRoom + " " + username);
+                System.out.println("[Room] " + username + " created room " + currentRoom);
+
+            } else if (firstLine.startsWith("JOIN_ROOM ")) {
+
+                String[] parts = firstLine.split(" ", 3);
+                if (parts.length != 3) {
+                    output.println("ROOM_ERROR: Format: JOIN_ROOM <code> <username>");
+                    return;
+                }
+                String code = parts[1].trim().toUpperCase();
+                String name = parts[2].trim();
+                if (name.isBlank()) {
+                    output.println("ROOM_ERROR: Username required.");
+                    return;
+                }
+                username = name;
+                if (!server.joinRoom(code, this)) {
+                    output.println("ROOM_ERROR: Room " + code + " not found or expired.");
+                    return;
+                }
+                currentRoom = code;
+                authenticated = true;
+                output.println("ROOM_JOINED " + currentRoom + " " + username);
+                server.broadcastToRoom(currentRoom, "ROOM_MEMBER_JOINED " + username, this);
+                sendRoomMemberList();
+                System.out.println("[Room] " + username + " joined room " + currentRoom);
 
             } else {
 
-
-                output.println("ERROR: Please REGISTER or LOGIN.");
+                output.println("ERROR: Please REGISTER, LOGIN, or join a ROOM.");
                 return;
             }
-
 
             if (!authenticated) {
                 return;
             }
 
-
             String message;
-
 
             while ((message = input.readLine()) != null) {
 
-
-                if (message.equals("TO") || message.startsWith("TO ")) {
-
+                if (currentRoom != null) {
+                    if (message.startsWith("ROOM_MSG ")) {
+                        String text = message.substring("ROOM_MSG ".length()).trim();
+                        server.broadcastToRoom(currentRoom, "ROOM_MSG " + username + ": " + text, null);
+                    } else if (message.equals("ROOM_MEMBERS")) {
+                        sendRoomMemberList();
+                    } else if (message.equals("LEAVE_ROOM")) {
+                        server.leaveRoom(currentRoom, this);
+                        server.broadcastToRoom(currentRoom, "ROOM_MEMBER_LEFT " + username, this);
+                        output.println("ROOM_LEFT");
+                        currentRoom = null;
+                    } else {
+                        server.broadcastToRoom(currentRoom, "ROOM_MSG " + username + ": " + message, null);
+                    }
+                } else if (message.startsWith("CREATE_ROOM ")) {
+                    String name = message.substring("CREATE_ROOM ".length()).trim();
+                    if (!name.isBlank()) {
+                        username = name;
+                        currentRoom = server.createRoom(this, username);
+                        output.println("ROOM_CREATED " + currentRoom + " " + username);
+                        System.out.println("[Room] " + username + " created room " + currentRoom);
+                    } else {
+                        output.println("ROOM_ERROR: Username required.");
+                    }
+                } else if (message.startsWith("JOIN_ROOM ")) {
+                    String[] parts = message.split(" ", 3);
+                    if (parts.length == 3) {
+                        String code = parts[1].trim().toUpperCase();
+                        String name = parts[2].trim();
+                        username = name;
+                        if (server.joinRoom(code, this)) {
+                            currentRoom = code;
+                            output.println("ROOM_JOINED " + currentRoom + " " + username);
+                            server.broadcastToRoom(currentRoom, "ROOM_MEMBER_JOINED " + username, this);
+                            sendRoomMemberList();
+                            System.out.println("[Room] " + username + " joined room " + currentRoom);
+                        } else {
+                            output.println("ROOM_ERROR: Room " + code + " not found or expired.");
+                        }
+                    } else {
+                        output.println("ROOM_ERROR: Format: JOIN_ROOM <code> <username>");
+                    }
+                } else if (message.equals("LEAVE_ROOM")) {
+                    output.println("ROOM_LEFT");
+                } else if (message.equals("TO") || message.startsWith("TO ")) {
 
                     handlePrivateMessage(message);
 
                 } else if (message.equals("PRESENCE")
                         || message.startsWith("PRESENCE ")) {
 
-
                     handlePresence(message);
 
                 } else if (message.equals("HISTORY")
                         || message.startsWith("HISTORY ")) {
-
 
                     handleHistory(message);
 
@@ -210,17 +284,14 @@ public class ClientHandler implements Runnable {
                         || message.startsWith("SEARCH ")
                         || message.equals("USERS")) {
 
-
                     handleSearch(message.startsWith("SEARCH ") ? message.substring("SEARCH ".length()).trim() : "");
 
                 } else if (message.equals("BROADCAST")
                         || message.startsWith("BROADCAST ")) {
 
-
                     handleBroadcast(stripCommand(message, "BROADCAST"));
 
                 } else {
-
 
                     handleBroadcast(message);
                 }
@@ -228,12 +299,14 @@ public class ClientHandler implements Runnable {
 
         } catch (IOException e) {
 
-
             System.out.println("Client disconnected.");
-
 
         } finally {
 
+            if (currentRoom != null) {
+                server.leaveRoom(currentRoom, this);
+                server.broadcastToRoom(currentRoom, "ROOM_MEMBER_LEFT " + username, this);
+            }
 
             if (username != null) {
                 System.out.println(
@@ -241,9 +314,7 @@ public class ClientHandler implements Runnable {
                 );
             }
 
-
             server.removeClient(this);
-
 
             try {
                 socket.close();
@@ -251,6 +322,7 @@ public class ClientHandler implements Runnable {
             }
         }
     }
+
 
 
     private void handlePrivateMessage(String line) {
@@ -465,5 +537,20 @@ public class ClientHandler implements Runnable {
         }
         output.println(sb.toString());
     }
+
+    private void sendRoomMemberList() {
+        if (currentRoom == null) return;
+        java.util.Set<ClientHandler> members = server.getRoomMembers(currentRoom);
+        StringBuilder sb = new StringBuilder("ROOM_MEMBERS ");
+        boolean first = true;
+        for (ClientHandler m : members) {
+            if (!first) sb.append(",");
+            sb.append(m.getUsername());
+            first = false;
+        }
+        output.println(sb.toString());
+    }
 }
+
+
 
