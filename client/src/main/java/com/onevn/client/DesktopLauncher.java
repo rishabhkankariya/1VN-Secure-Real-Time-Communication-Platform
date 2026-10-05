@@ -1,10 +1,10 @@
 package com.onevn.client;
 
-import com.onevn.server.Main;
 import com.onevn.server.ServerRuntime;
 import com.onevn.server.repository.MessageRepository;
 import com.onevn.server.repository.UserRepository;
 import com.onevn.server.security.MessageEncryption;
+import javafx.application.Application;
 
 public class DesktopLauncher {
 
@@ -42,6 +42,7 @@ public class DesktopLauncher {
         }
 
         // Launch JavaFX client application
-        Main.main(args);
+        Application.launch(Main.class, args);
     }
 }
+

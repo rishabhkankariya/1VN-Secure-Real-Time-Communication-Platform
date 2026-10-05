@@ -22,6 +22,14 @@ if (Test-Path $tmpPackageDir) {
     Remove-Item -Recurse -Force $tmpPackageDir
 }
 
+# Ensure input directory does not contain existing launcher config
+if (Test-Path "$distDir\app\1VN.cfg") {
+    Remove-Item -Force "$distDir\app\1VN.cfg"
+}
+if (Test-Path "$distDir\app\.jpackage.xml") {
+    Remove-Item -Force "$distDir\app\.jpackage.xml"
+}
+
 & jpackage `
     --type app-image `
     --dest "$tmpPackageDir" `
@@ -43,6 +51,19 @@ if (Test-Path $generatedExe) {
     Write-Host "Native launcher copied to: $distDir\1VN.exe"
 } else {
     throw "Generated executable not found at $generatedExe"
+}
+
+# Copy generated launcher configuration files to dist app directory
+$generatedCfg = "$tmpPackageDir\1VN\app\1VN.cfg"
+if (Test-Path $generatedCfg) {
+    Copy-Item $generatedCfg "$distDir\app\1VN.cfg" -Force
+    Write-Host "Launcher configuration copied to: $distDir\app\1VN.cfg"
+} else {
+    throw "Generated configuration not found at $generatedCfg"
+}
+
+if (Test-Path "$tmpPackageDir\1VN\app\.jpackage.xml") {
+    Copy-Item "$tmpPackageDir\1VN\app\.jpackage.xml" "$distDir\app\.jpackage.xml" -Force
 }
 
 # Clean temporary jpackage output directory
