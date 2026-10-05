@@ -29,6 +29,11 @@
             <version>${javafx.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.1VN</groupId>
+            <artifactId>server</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
