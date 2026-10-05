@@ -24,8 +24,12 @@ public class Main extends Application {
                         .toExternalForm()
         );
 
-        stage.setTitle("1VN Chat");
+        stage.setTitle("1VN - Secure Real-Time Communication Platform");
         stage.setScene(scene);
+        stage.setOnCloseRequest(e -> {
+            System.out.println("[1VN] Window closed. Exiting application.");
+            System.exit(0);
+        });
         stage.show();
     }
 
