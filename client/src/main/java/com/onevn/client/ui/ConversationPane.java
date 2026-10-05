@@ -32,7 +32,6 @@ public class ConversationPane {
     private final Label newChatError = new Label();
     private final Button startButton = new Button("Start");
     private final Button cancelButton = new Button("Cancel");
-    private boolean newChatVisible = false;
 
     public ConversationPane() {
 
@@ -168,7 +167,6 @@ public class ConversationPane {
     }
 
     public void showNewChat() {
-        newChatVisible = true;
         newChatPanel.setVisible(true);
         newChatPanel.setManaged(true);
         newChatError.setVisible(false);
@@ -178,7 +176,6 @@ public class ConversationPane {
     }
 
     public void hideNewChat() {
-        newChatVisible = false;
         newChatPanel.setVisible(false);
         newChatPanel.setManaged(false);
         newChatError.setVisible(false);

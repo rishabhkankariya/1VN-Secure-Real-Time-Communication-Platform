@@ -13,10 +13,11 @@ public class DatabaseTest {
         try (Connection connection =
                      DatabaseConnection.getConnection()) {
 
-
-            System.out.println(
-                    "MySQL connection successful."
-            );
+            if (connection != null && !connection.isClosed()) {
+                System.out.println(
+                        "MySQL connection successful."
+                );
+            }
 
 
         } catch (Exception e) {

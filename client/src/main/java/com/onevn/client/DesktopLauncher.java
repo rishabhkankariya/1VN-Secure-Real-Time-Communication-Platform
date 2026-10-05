@@ -3,8 +3,6 @@ package com.onevn.client;
 import com.onevn.server.Main;
 import com.onevn.server.ServerRuntime;
 import com.onevn.server.repository.MessageRepository;
-import com.onevn.server.repository.MySqlMessageRepository;
-import com.onevn.server.repository.MySqlUserRepository;
 import com.onevn.server.repository.UserRepository;
 import com.onevn.server.security.MessageEncryption;
 

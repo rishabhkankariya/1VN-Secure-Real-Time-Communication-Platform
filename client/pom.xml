@@ -80,6 +80,7 @@
                         <configuration>
                             <outputDirectory>${project.build.directory}/libs</outputDirectory>
                             <includeScope>runtime</includeScope>
+                            <excludeGroupIds>com.1VN</excludeGroupIds>
                         </configuration>
                     </execution>
                 </executions>

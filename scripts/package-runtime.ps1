@@ -31,6 +31,7 @@ if ($LASTEXITCODE -ne 0) {
 # 2. Copy application JARs
 Write-Host "Copying application JARs to app directory..."
 Copy-Item "$rootDir\client\target\client-1.0-SNAPSHOT.jar" "$distDir\app\" -Force
+Copy-Item "$rootDir\server\target\server-1.0-SNAPSHOT.jar" "$distDir\app\libs\" -Force
 Copy-Item "$rootDir\client\target\libs\*" "$distDir\app\libs\" -Force
 
 # 3. Build customized minimal Java runtime via jlink

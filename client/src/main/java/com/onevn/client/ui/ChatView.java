@@ -3,7 +3,6 @@ package com.onevn.client.ui;
 import com.onevn.client.service.ChatService;
 
 import javafx.application.Platform;
-import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -36,7 +35,6 @@ public class ChatView {
     private boolean connected = false;
     private boolean authenticated = false;
     private boolean loadingHistory = false;
-    private String historyTarget = null;
     private String selectedUser = null;
 
     public BorderPane createView() {
@@ -297,7 +295,6 @@ public class ChatView {
 
         selectedUser = user;
         conversationField.setText(user);
-        historyTarget = user;
 
         messageField.setDisable(false);
         sendButton.setDisable(false);
@@ -352,8 +349,6 @@ public class ChatView {
         }
 
         addKnownUser(target);
-
-        historyTarget = target;
 
         chatService.requestHistory(target);
     }

@@ -2,8 +2,6 @@ package com.onevn.server;
 
 
 import com.onevn.server.repository.MessageRepository;
-import com.onevn.server.repository.MySqlMessageRepository;
-import com.onevn.server.repository.MySqlUserRepository;
 import com.onevn.server.repository.UserRepository;
 import com.onevn.server.service.MessageService;
 import com.onevn.server.service.UserService;
